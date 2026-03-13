@@ -228,7 +228,7 @@ void infix_to_postfix(char** stringToChange){
                 continue; // there's nothing to do after this
             }
             
-            int index = (int)(isOperator - operator);
+            int index = (int)(isOperator - operator); // to retrieve the index, isOperator pointer - operator pointer, where operator pointer points to index 0, and isOperator is what index on the operator points to
             int priority = priorityArray[index];
             bool isPreviousOperatorNULL = false;
             while (stack != NULL) { 
