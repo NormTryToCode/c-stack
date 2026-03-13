@@ -195,6 +195,7 @@ bool parenthesisChecking(char** input){
 
 
 void infix_to_postfix(char** stringToChange){
+    // kalo gini, nanti pas kita bikin function buat evaluate postfix, buat digit lebih dari 1 blm ada casenya
     NodeObject* stack = NULL;
     NodeObject* bottom_stack = NULL;
     char* parenthesisOpen= "([{";
