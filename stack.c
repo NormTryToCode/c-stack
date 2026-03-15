@@ -235,7 +235,7 @@ bool parenthesisChecking(char** input){
 
 
 
-void infixToPostfix(char** stringToChange){
+void infixToPostfix(char** stringToChange){ // version 1
     // If only with this logic, it cannot change the expression that uses more than one digit, for example
     //(10 + 8) / 9
 
@@ -462,6 +462,163 @@ void infixToPostfixGeneral(char** stringToChange){
     // 10 8+9/
 }
 
+
+char* infixToPostfixGeneralReturns(char** stringToChange){ // version 2
+    NodeObject* stack = NULL;
+    NodeObject* bottom_stack = NULL;
+
+    char* result = malloc(1000);
+    result[0] = '\0';
+    int currentPosition = 0;
+    char* parenthesisOpen = "([{";
+    char* parenthesisClose = ")]}";
+    char* operator = "+-*/^";
+    char* alphabetLowerPost = "abcdefghijklmnopqrstuvwxyz";
+    char* alphabetUpperPost = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    char* digits = "0123456789";
+    bool validation = parenthesisChecking(stringToChange);
+    int priorityArray[] ={3, 3, 2, 2, 1}; // the lower the greater the priority
+
+    if (!validation) {
+        printf("Maaf, kurung nya tidak valid!\n");
+        char* errorMessage = "NONONO";
+        return errorMessage;
+    }
+    int strLength = strlen(*stringToChange);
+    for (int currentIndex = 0; currentIndex < strLength; currentIndex++){
+        char currentChar = (*stringToChange)[currentIndex];
+
+
+        char* isOperator = strchr(operator, currentChar);
+        char* isOpenParenthesis = strchr(parenthesisOpen, currentChar);
+        char* isCloseParenthesis = strchr(parenthesisClose, currentChar);
+
+        char* isAlphabetLower = strchr(alphabetLowerPost, currentChar);
+        char* isAlphabetUpper = strchr(alphabetUpperPost, currentChar);
+        char* isDigit = strchr(digits, currentChar);
+        if (isOperator != NULL) { // this will not return null if the string is found
+            char* currentOperator = (char*)malloc(sizeof(char));
+            *currentOperator = currentChar;
+            if (currentChar == '-'){
+                bool unary = currentIndex == 0 || strchr("+-*/(", (*stringToChange)[currentIndex-1]) != NULL; //unary means we treat it as operand, not operator
+                if (currentIndex == 0){
+                    result[currentPosition++] = *currentOperator;
+                    result[currentPosition] = '\0'; 
+                    printf("%c", *currentOperator);
+                    free(currentOperator);
+                    continue;
+                }
+                if (currentIndex + 1 < strLength && isdigit((*stringToChange)[currentIndex+1])){
+                
+                    if (!unary){
+                        currentChar = (*stringToChange)[currentIndex];
+                        *currentOperator = currentChar;
+                        push(&stack, currentOperator, 'c');
+                        continue;
+                    }
+                    printf("%c", *currentOperator);
+                    result[currentPosition++] = *currentOperator;
+                    currentIndex++;
+                    while (currentIndex + 1 < strLength && isdigit((*stringToChange)[currentIndex+1])){
+                        result[currentPosition++] = (*stringToChange)[currentIndex];
+                        printf("%c", (*stringToChange)[currentIndex]);
+                        currentIndex += 1;
+                    }
+                    result[currentPosition] = '\0'; 
+                    currentIndex--;
+                    free(currentOperator);
+                    continue;
+                }
+            }
+            if (stack == NULL) {
+                push(&stack, currentOperator, 'c');
+                continue; // there's nothing to do after this
+            }
+            
+            int index = (int)(isOperator - operator); // to retrieve the index, isOperator pointer - operator pointer, where operator pointer points to index 0, and isOperator is what index on the operator points to
+            int priority = priorityArray[index];
+            bool isPreviousOperatorNULL = false;
+            while (stack != NULL) { 
+                char previousOperator = (*(char*)peekTop(stack));
+                char* isOperatorPrevious = strchr(operator, previousOperator);
+                if (isOperatorPrevious == NULL) {
+                    isPreviousOperatorNULL = true;
+                    break;
+                }
+                int indexOfPreviousOperator = (int)(isOperatorPrevious - operator);
+                int priorityOfPreviousOperator = priorityArray[indexOfPreviousOperator];
+                if (priorityOfPreviousOperator <= priority) {
+                    pop(&stack, &bottom_stack); 
+                    result[currentPosition++] = previousOperator;
+                    result[currentPosition++] = ' ';
+                    result[currentPosition] = '\0'; 
+                    printf("%c ", previousOperator);
+                }
+                else {
+                    break;
+                }
+            }
+
+            push(&stack, currentOperator, 'c');
+        }
+        else if (isOpenParenthesis != NULL) {
+            char* currentOpen = (char*)malloc(sizeof(char));
+            *currentOpen = currentChar;
+            push(&stack, currentOpen, 'c');
+            // printStack(stack);
+        }
+        else if (isCloseParenthesis != NULL) {
+            while ((char*)peekTop(stack) != NULL) {
+                char* isParentOpen = strchr(parenthesisOpen, *(char*)peekTop(stack));
+                
+                
+                if (isParentOpen == NULL){
+                    result[currentPosition++] = *(char*)peekTop(stack);
+                    result[currentPosition++] = ' ';
+                    result[currentPosition] = '\0';
+                    printf("%c ", *(char*)peekTop(stack));
+                    pop(&stack, &bottom_stack);
+                }
+                else {
+                    break;
+                }
+                
+            }
+            pop(&stack, &bottom_stack);
+        }
+        else if (isAlphabetLower != NULL || isAlphabetUpper != NULL){
+            result[currentPosition++] = currentChar;
+            result[currentPosition++] = ' ';
+            result[currentPosition] = '\0';
+            printf("%c ", currentChar);
+        }
+        
+        else if (isdigit((*stringToChange)[currentIndex]) || ((*stringToChange)[currentIndex]) == '.'){
+            while (isdigit((*stringToChange)[currentIndex]) || ((*stringToChange)[currentIndex]) == '.'){
+                result[currentPosition++] = (*stringToChange)[currentIndex];
+                printf("%c", (*stringToChange)[currentIndex]);
+                currentIndex += 1;
+        }
+            result[currentPosition++] = ' ';
+            result[currentPosition] = '\0';
+            printf(" ");
+            currentIndex--;
+        }
+    }
+    // mengecek apakah masih ada operator yang masih belum terpanggil karena kurang n
+    while (stack != NULL){
+        result[currentPosition++] = *(char*)peekTop(stack);
+        result[currentPosition++] = ' ';
+        result[currentPosition] = '\0';
+        printf("%c ", *(char*)peekTop(stack));
+        pop(&stack, &bottom_stack);
+    }
+    printf("\n");
+    return result;
+    // A + B / C, ABC/+
+    // 10 8+9/
+}
+
 double evaluatePostFix(char* expression){
     int elementNumber = strlen(expression);
     // printf("\nelement number: %d", elementNumber);
@@ -502,7 +659,10 @@ double evaluatePostFix(char* expression){
         }
         else if (isOperator != NULL){
             // printf("Operator here\n");
-            
+            if (countStackElements(numberStack) <= 1){
+                printf("Invalid postfix expression!\n");
+                return -1;
+            }
             if (numberStack != NULL){
                     double secondNumber = *(double*)peekTop(numberStack);
                     pop(&numberStack, &backNumberStack);
@@ -541,43 +701,45 @@ double evaluatePostFix(char* expression){
 }
 
 int main(){
-    NodeObject* top_of_stack = NULL;
-    NodeObject* bottom_of_stack = NULL;
-    char type = 'i';
+    // NodeObject* top_of_stack = NULL;
+    // NodeObject* bottom_of_stack = NULL;
+    // char type = 'i';
     // char* myString = "Hello";
-    char* myFirstString = (char*)malloc(strlen("test") + 1); // It's actually a good convention to use const to a char pointer, even though you cannot 
-    strcpy(myFirstString, "test");
+    // char* myFirstString = (char*)malloc(strlen("test") + 1); // It's actually a good convention to use const to a char pointer, even though you cannot 
+    // strcpy(myFirstString, "test");
     // change it by indexing
-    int* first_number = (int*)malloc(sizeof(int));
-    *first_number = 1;
-    int* second_number = (int*)malloc(sizeof(int));
-    *second_number = 2;
-    int* third_number = (int*)malloc(sizeof(int));
-    *third_number = 3;
-    float* my_float = (float*)malloc(sizeof(float));
-    *my_float = 4.32f;
-    char* myString = (char*)malloc(strlen("my string") + 1);
-    strcpy(myString, "my string");
-    char* testParenthesis = (char*)malloc(strlen("()[][[]][{{}}]") + 1);
-    strcpy(testParenthesis, "()[][[]][{{}}]");
-    char* expression = (char*)malloc(strlen("(a + b * (c / (d- e))) + f / g") + 1);
-    strcpy(expression, "3.2*-3.4");
-    printStack(top_of_stack);
+    // int* first_number = (int*)malloc(sizeof(int));
+    // *first_number = 1;
+    // int* second_number = (int*)malloc(sizeof(int));
+    // *second_number = 2;
+    // int* third_number = (int*)malloc(sizeof(int));
+    // *third_number = 3;
+    // float* my_float = (float*)malloc(sizeof(float));
+    // *my_float = 4.32f;
+    // char* myString = (char*)malloc(strlen("my string") + 1);
+    // strcpy(myString, "my string");
+    // char* testParenthesis = (char*)malloc(strlen("()[][[]][{{}}]") + 1);
+    // strcpy(testParenthesis, "()[][[]][{{}}]");
+    char* expression = (char*)malloc(1000);
+    printf("Masukkan ekspresi infix anda: ");
+    scanf("%999[^\n]", expression); // this allows you to have space on your input, this means it will read the input until newline character is inputtted
+    printf("%s\n", expression);
+    // printStack(top_of_stack);
 
 
-    push(&top_of_stack, myFirstString, 's');
-    push(&top_of_stack, first_number, 'i');
-    push(&top_of_stack, second_number, 'i');
-    push(&top_of_stack, third_number, 'i');
+    // push(&top_of_stack, myFirstString, 's');
+    // push(&top_of_stack, first_number, 'i');
+    // push(&top_of_stack, second_number, 'i');
+    // push(&top_of_stack, third_number, 'i');
     // push(&top_of_stack, &my_float, 'f');
-    push(&top_of_stack, myString, 's');
+    // push(&top_of_stack, myString, 's');
 
     // push(&top_of_stack, myString);
 
-    printStack(top_of_stack);
+    // printStack(top_of_stack);
     // infixToPostfix(&myString);
-    pop(&top_of_stack, &bottom_of_stack);
-    printStack(top_of_stack);
+    // pop(&top_of_stack, &bottom_of_stack);
+    // printStack(top_of_stack);
     // printStack(top_of_stack);
     // pop(&top_of_stack, &bottom_of_stack);
 
@@ -587,15 +749,14 @@ int main(){
     // changeStr(&myString);
     // puts(myString);
     
-    parenthesisChecking(&testParenthesis);
+    // parenthesisChecking(&testParenthesis);
     printf("Ekspresi infix: %s\n", expression);
     printf("Ekspresi postfix: ");
-    infixToPostfixGeneral(&expression);
+    char* postfixExpression = infixToPostfixGeneralReturns(&expression);
     printf("\n");
-    char* postfixToEvaluate = "3.14159 22 7 / *";
     printf("Normal power: %d\n", normalPower(-2, 5));
-    double postfixResult = evaluatePostFix(postfixToEvaluate);
-    printf("Postifx expression %s\n", postfixToEvaluate);
+    double postfixResult = evaluatePostFix(postfixExpression);
+    printf("Postifx expression %s\n",postfixExpression);
     // %g is handy, it switches between %d, %f, and scientific notation, soo instead of this
     // if (trunc(postfixResult) == postfixResult) {
     //     int postfixIntegerResult = (int)postfixResult;
@@ -605,5 +766,5 @@ int main(){
     //     printf("The postfix result : %.4f\n", postfixResult);
     // }
     // you could do this
-    printf("The postfix result: %.100g\n", postfixResult);
+    printf("The postfix result: %.5g\n", postfixResult);
 }
